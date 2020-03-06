@@ -126,8 +126,7 @@ inline std::vector<size_t> get_dim_vector(const T(&vec)[N]) {
 
 
 template <typename T>
-using unqualified_t = typename std::remove_const<typename std::remove_reference<T>::type
-        >::type;
+using unqualified_t = typename std::remove_cv<T>::type;
 
 // determine at compile time recursively the basic type of the data
 template <typename T>

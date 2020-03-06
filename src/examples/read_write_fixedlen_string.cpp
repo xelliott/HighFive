@@ -38,8 +38,7 @@ int main(void) {
         auto ds = file.createDataSet("ds3", arr);
 
         // Read back truncating to 4 chars
-        FixedLenStringArray<4> array_back;
-        ds.read(array_back);
+        auto array_back = ds.read<FixedLenStringArray<4>>();
         std::cout << "First item is '" << array_back[0] << "'" << std::endl
                   << "Second item is '" << array_back[1] << "'" << std::endl;
 

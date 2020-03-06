@@ -87,18 +87,7 @@ class SliceTraits {
     /// responsibility to ensure that the right amount of space has been
     /// allocated.
     template <typename T>
-    void read(T& array) const;
-
-    ///
-    /// Read the entire dataset into a raw buffer
-    ///
-    /// No dimensionality checks will be performed, it is the user's
-    /// responsibility to ensure that the right amount of space has been
-    /// allocated.
-    /// \param array: A buffer containing enough space for the data
-    /// \param dtype: The type of the data, in case it cannot be automatically guessed
-    template <typename T>
-    void read(T* array, const DataType& dtype = DataType()) const;
+    T read() const;
 
     ///
     /// Write the integrality N-dimension buffer to this dataset
@@ -109,19 +98,6 @@ class SliceTraits {
     /// dimensional array )
     template <typename T>
     void write(const T& buffer);
-
-    ///
-    /// Write from a raw buffer into this dataset
-    ///
-    /// No dimensionality checks will be performed, it is the user's
-    /// responsibility to ensure that the buffer holds the right amount of
-    /// elements. For n-dimensional matrices the buffer layout follows H5
-    /// default conventions.
-    /// \param buffer: A buffer containing the data to be written
-    /// \param dtype: The type of the data, in case it cannot be automatically guessed
-    template <typename T>
-    void write_raw(const T* buffer, const DataType& dtype = DataType());
-
 };
 
 }  // namespace HighFive

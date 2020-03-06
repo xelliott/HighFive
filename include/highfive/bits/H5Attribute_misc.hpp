@@ -49,7 +49,7 @@ inline DataSpace Attribute::getSpace() const {
 inline DataSpace Attribute::getMemSpace() const { return getSpace(); }
 
 template <typename T>
-inline void Attribute::read(T& array) const {
+inline T Attribute::read() const {
     static_assert(!std::is_const<typename std::remove_reference<T>::type>::value,
                   "read() requires a non-const array to read into");
     using element_type = typename details::type_of_array<T>::type;
@@ -68,21 +68,20 @@ inline void Attribute::read(T& array) const {
     const DataType mem_datatype = create_and_check_datatype<element_type>();
 
     // Apply pre read conversions
-    details::data_converter<T> converter(mem_space);
+    auto converter = make_transform_read<T>(mem_space.getDimensions());
 
     if (H5Aread(getId(), mem_datatype.getId(),
-                static_cast<void*>(converter.transform_read(array))) < 0) {
+                static_cast<void*>(converter.get_pointer())) < 0) {
         HDF5ErrMapper::ToException<AttributeException>(
             "Error during HDF5 Read: ");
     }
 
     // re-arrange results
-    converter.process_result(array);
+    return converter.transform_read();
 }
 
 template <typename T>
 inline void Attribute::write(const T& buffer) {
-    using element_type = typename details::type_of_array<T>::type;
     const size_t dim_buffer = details::array_dims<T>::value;
     DataSpace space = getSpace();
     DataSpace mem_space = getMemSpace();
@@ -95,11 +94,11 @@ inline void Attribute::write(const T& buffer) {
         throw DataSpaceException(ss.str());
     }
 
-    const DataType mem_datatype = create_and_check_datatype<element_type>();
-    details::data_converter<T> converter(mem_space);
+    const DataType mem_datatype = create_and_check_datatype<typename TransformWrite<T>::dataspace_type>();
+    auto converter = make_transform_write(buffer);
 
     if (H5Awrite(getId(), mem_datatype.getId(),
-                 static_cast<const void*>(converter.transform_write(buffer))) < 0) {
+                 static_cast<const void*>(converter.get_pointer())) < 0) {
         HDF5ErrMapper::ToException<DataSetException>(
             "Error during HDF5 Write: ");
     }

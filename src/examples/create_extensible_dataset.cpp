@@ -48,8 +48,7 @@ int main(void) {
         dataset.select({3, 3}, {1, 3}).write(t2);
 
         // now we read it back
-        std::vector<std::vector<double>> result;
-        dataset.read(result);
+        auto result = dataset.read<std::vector<std::vector<double>>>();
 
         // we print it out and see:
         // 2 0 0 0 0 0

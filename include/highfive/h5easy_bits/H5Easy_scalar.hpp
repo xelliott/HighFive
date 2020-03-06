@@ -88,15 +88,13 @@ struct io_impl {
                        const std::vector<size_t>& idx) {
         std::vector<size_t> ones(idx.size(), 1);
         DataSet dataset = file.getDataSet(path);
-        T data;
-        dataset.select(idx, ones).read(data);
+        T data = dataset.select(idx, ones).read<T>();
         return data;
     }
 
     static T load(const File& file, const std::string& path) {
         DataSet dataset = file.getDataSet(path);
-        T data;
-        dataset.read(data);
+        T data = dataset.read<T>();
         return data;
     }
 };

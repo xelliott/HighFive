@@ -26,7 +26,7 @@ bool operator!=(csl x, csl y) {
 }
 
 // Tell HighFive how to create the HDF5 datatype for this base type by
-// using the HIGHFUVE_REGISTER_TYPE macro
+// using the HIGHFIVE_REGISTER_TYPE macro
 CompoundType create_compound_csl() {
     return {{"u1", AtomicType<unsigned char>{}},
             {"u2", AtomicType<short>{}},
@@ -92,8 +92,7 @@ int main(void) {
         file.flush();
 
         // Read a subset of the data back
-        std::vector<csl> result;
-        dataset.select({0}, {2}).read(result);
+        auto result = dataset.select({0}, {2}).read<std::vector<csl>>();
 
         for(size_t i = 0; i < data.size(); ++i) {
             if (result[i] != data[i]) {

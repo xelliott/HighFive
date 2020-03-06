@@ -99,7 +99,7 @@ void readWriteVectorNDTest(std::vector<VectorSubT>& ndvec,
     BOOST_CHECK(ndvec == result);
 }
 
-BOOST_AUTO_TEST_CASE_TEMPLATE(readWritSimpleVector, T, numerical_test_types) {
+BOOST_AUTO_TEST_CASE_TEMPLATE(readWriteSimpleVector, T, numerical_test_types) {
     std::vector<T> vec;
     readWriteVectorNDTest<T>(vec, {50});
 }

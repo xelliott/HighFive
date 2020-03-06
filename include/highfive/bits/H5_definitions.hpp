@@ -52,8 +52,8 @@ class PropertyList;
 
 namespace details {
 
-// Forward declaration of data_converter with default value of Enable
-template <typename T, typename Enable = void>
+// Forward declaration of data_converter
+template <typename T>
 struct data_converter;
 
 }

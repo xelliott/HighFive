@@ -49,8 +49,7 @@ struct io_impl<T, typename std::enable_if<is_vector<T>::value>::type> {
 
     static T load(const File& file, const std::string& path) {
         DataSet dataset = file.getDataSet(path);
-        T data;
-        dataset.read(data);
+        T data = dataset.read<T>();
         return data;
     }
 };
