@@ -10,12 +10,13 @@
 #define H5CONVERTER_MISC_HPP
 
 #include <algorithm>
+#include <array>
 #include <cassert>
 #include <functional>
 #include <numeric>
 #include <sstream>
 #include <string>
-#include <array>
+#include <type_traits>
 
 #ifdef H5_USE_BOOST
 // starting Boost 1.64, serialization header must come before ublas
@@ -426,6 +427,45 @@ struct data_converter<std::vector<Reference>, void> {
     std::vector<size_t> _dims;
     std::vector<typename type_of_array<hobj_ref_t>::type> _vec_align;
 };
+
+
+// HighFive type traits useful to construct recursive data converters
+
+template <typename T>
+struct h5_pod : std::is_trivial<T> {};
+
+template <>
+struct h5_pod<bool> :
+    std::integral_constant<bool, false> {};
+
+template <typename T>
+struct h5_continuous :
+    std::integral_constant<bool, false> {};
+
+template <typename S>
+struct h5_continuous<std::vector<S>> :
+    std::integral_constant<bool, h5_pod<S>::value> {};
+
+template <typename S, size_t N>
+struct h5_continuous<std::array<S, N>> :
+    std::integral_constant<bool, h5_pod<S>::value> {};
+
+template <typename S, size_t Dims>
+struct h5_continuous<boost::multi_array<S, Dims>> :
+    std::integral_constant<bool, true> {};
+
+template <typename S, int M, int N>
+struct h5_continuous<Eigen::Matrix<S, M, N>> :
+    std::integral_constant<bool, true> {};
+
+template <>
+struct h5_continuous<Reference> :
+    std::integral_constant<bool, true> {};
+
+template <typename T>
+struct h5_non_continuous :
+    std::integral_constant< bool, !h5_continuous<T>::value> {};
+
 
 }  // namespace details
 
