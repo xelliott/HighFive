@@ -22,14 +22,11 @@ struct is_vector : std::false_type {};
 template <class T>
 struct is_vector<std::vector<T>> : std::true_type {};
 
-using HighFive::details::get_dim_vector;
-using HighFive::details::type_of_array;
-
 template <typename T>
 struct io_impl<T, typename std::enable_if<is_vector<T>::value>::type> {
 
     static DataSet dump(File& file, const std::string& path, const T& data) {
-        using type_name = typename type_of_array<T>::type;
+        using type_name = typename HighFive::details::data_converter<T>::dataspace_type;
         detail::createGroupsToDataSet(file, path);
         DataSet dataset = file.createDataSet<type_name>(path, DataSpace::From(data));
         dataset.write(data);
@@ -39,7 +36,7 @@ struct io_impl<T, typename std::enable_if<is_vector<T>::value>::type> {
 
     static DataSet overwrite(File& file, const std::string& path, const T& data) {
         DataSet dataset = file.getDataSet(path);
-        if (get_dim_vector(data) != dataset.getDimensions()) {
+        if (HighFive::compute_dims(data) != dataset.getDimensions()) {
             throw detail::error(file, path, "H5Easy::dump: Inconsistent dimensions");
         }
         dataset.write(data);

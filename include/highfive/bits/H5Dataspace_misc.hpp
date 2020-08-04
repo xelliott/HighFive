@@ -18,6 +18,8 @@
 
 #include "H5Utils.hpp"
 
+#include "H5Converter_misc.hpp"
+
 namespace HighFive {
 
 inline DataSpace::DataSpace(const std::vector<size_t>& dims)
@@ -150,12 +152,12 @@ inline DataSpace DataSpace::From(const ScalarValue& scalar) {
 
 template <typename Value>
 inline DataSpace DataSpace::From(const std::vector<Value>& container) {
-    return DataSpace(details::get_dim_vector<Value>(container));
+    return DataSpace(compute_dims(container).size());
 }
 
 template <typename ValueT, std::size_t N>
 inline DataSpace DataSpace::From(const ValueT(&container)[N]) {
-    return DataSpace(details::get_dim_vector(container));
+    return DataSpace(compute_dims(container).size());
 }
 
 template <std::size_t N, std::size_t Width>

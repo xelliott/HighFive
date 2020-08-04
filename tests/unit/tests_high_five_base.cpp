@@ -275,7 +275,7 @@ BOOST_AUTO_TEST_CASE(HighFiveExtensibleDataSet) {
 
         DataSet dataset_absolute = file.getDataSet("/" + DATASET_NAME);
         const auto dims = dataset_absolute.getSpace().getDimensions();
-        double values[4][6] = dataset_absolute.read<double[4][6]>();
+        auto values = dataset_absolute.read<double[4][6]>();
         BOOST_CHECK_EQUAL(4, dims[0]);
         BOOST_CHECK_EQUAL(6, dims[1]);
 
@@ -610,7 +610,7 @@ BOOST_AUTO_TEST_CASE(HighFiveReadWriteShortcut) {
     auto out_int = ds_int.read<int>();
     BOOST_CHECK_EQUAL(my_int, out_int);
 
-    auto out_nested = ds_nested.read<decltype(my_nested)();
+    auto out_nested = ds_nested.read<decltype(my_nested)>();
 
     for (size_t i = 0; i < 2; ++i) {
         for (size_t j = 0; j < 2; ++j) {
@@ -634,7 +634,7 @@ BOOST_AUTO_TEST_CASE(HighFiveReadWriteShortcut) {
         char char_c_2darray[][3] = {"aa", "bb", "cc", "12"};
         DataSet ds_char2 = file.createDataSet("/TmpCArray2dchar", char_c_2darray);
 
-        auto char_c_2darray_out = ds_char2.read<decltype(char_c_2darray)();
+        auto char_c_2darray_out = ds_char2.read<decltype(char[2][3])();
         for (size_t i = 0; i < 4; ++i) {
             for (size_t j = 0; j < 3; ++j) {
                 BOOST_CHECK_EQUAL(char_c_2darray[i][j], char_c_2darray_out[i][j]);
@@ -724,7 +724,7 @@ void readWriteAttributeVectorTest() {
         // with const would print a nice err msg
         auto v = file.getDataSet("/dummy_group/dummy_dataset")
             .getAttribute("version_test")
-            .read<std::vector<int>>(v);
+            .read<std::vector<int>>();
     }
 
     // Delete some attributes

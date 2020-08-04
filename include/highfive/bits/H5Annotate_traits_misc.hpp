@@ -48,10 +48,11 @@ template <typename T>
 inline Attribute
 AnnotateTraits<Derivate>::createAttribute(const std::string& attribute_name,
                                           const T& data) {
+    auto conv = make_transform_write(data);
     Attribute att = createAttribute(
         attribute_name, 
         DataSpace::From(data),
-        create_and_check_datatype<typename details::type_of_array<T>::type>());
+        create_and_check_datatype<conv.dataspace_type>());
     att.write(data);
     return att;
 }

@@ -158,16 +158,15 @@ template <typename T>
 inline T SliceTraits<Derivate>::read() const {
     const auto& slice = static_cast<const Derivate&>(*this);
     const DataSpace& mem_space = slice.getMemSpace();
-    const details::BufferInfo<T> buffer_info(slice.getDataType());
+    auto converter = make_transform_read<T>(mem_space.getDimensions());
 
-    if (!details::checkDimensions(mem_space, buffer_info.n_dimensions)) {
+    if (!details::checkDimensions(mem_space, converter.get_dims().size())) {
         std::ostringstream ss;
         ss << "Impossible to read DataSet of dimensions "
            << mem_space.getNumberDimensions() << " into arrays of dimensions "
-           << buffer_info.n_dimensions;
+           << converter.get_dims().size();
         throw DataSpaceException(ss.str());
     }
-    auto converter = make_transform_read<T>(mem_space.getDimensions());
 
     const DataType& mem_datatype = create_and_check_datatype<typename TransformRead<T>::dataspace_type>();
 

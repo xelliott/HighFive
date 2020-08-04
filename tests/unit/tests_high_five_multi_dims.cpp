@@ -53,8 +53,7 @@ void readWrite2DArrayTest() {
 
     dataset.write(array);
 
-    T result[x_size][y_size];
-    dataset.read(result);
+    auto result = dataset.read<std::vector<std::vector<T>>>();
 
     for (size_t i = 0; i < x_size; ++i) {
         for (size_t j = 0; j < y_size; ++j) {
@@ -79,8 +78,8 @@ void readWriteArrayTest() {
 
     BOOST_CHECK_EQUAL_COLLECTIONS(result.begin(), result.end(), vec.begin(), vec.end());
 
-    typename std::array<T, 1> tooSmall;
-    BOOST_CHECK_THROW(dataset.read(tooSmall), DataSpaceException);
+    using tooSmall = std::array<T, 1>;
+    BOOST_CHECK_THROW(dataset.read<typename tooSmall>(), DataSpaceException);
 }
 BOOST_AUTO_TEST_CASE_TEMPLATE(readWriteArray, T, numerical_test_types) {
     readWriteArrayTest<T>();

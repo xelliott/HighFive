@@ -52,10 +52,11 @@ template <typename T>
 inline T Attribute::read() const {
     static_assert(!std::is_const<typename std::remove_reference<T>::type>::value,
                   "read() requires a non-const array to read into");
-    using element_type = typename details::type_of_array<T>::type;
-    const size_t dim_array = details::array_dims<T>::value;
-    DataSpace space = getSpace();
     DataSpace mem_space = getMemSpace();
+    auto converter = make_transform_read<T>(mem_space.getDimensions());
+    using element_type = typename details::data_converter<T>::dataspace_type;
+    const size_t dim_array = converter.get_size().size();
+    DataSpace space = getSpace();
 
     if (!details::checkDimensions(mem_space, dim_array)) {
         std::ostringstream ss;
@@ -68,7 +69,6 @@ inline T Attribute::read() const {
     const DataType mem_datatype = create_and_check_datatype<element_type>();
 
     // Apply pre read conversions
-    auto converter = make_transform_read<T>(mem_space.getDimensions());
 
     if (H5Aread(getId(), mem_datatype.getId(),
                 static_cast<void*>(converter.get_pointer())) < 0) {
@@ -82,7 +82,8 @@ inline T Attribute::read() const {
 
 template <typename T>
 inline void Attribute::write(const T& buffer) {
-    const size_t dim_buffer = details::array_dims<T>::value;
+    auto converter = make_transform_write(buffer);
+    const size_t dim_buffer = converter.get_dims().size();
     DataSpace space = getSpace();
     DataSpace mem_space = getMemSpace();
 
@@ -95,7 +96,6 @@ inline void Attribute::write(const T& buffer) {
     }
 
     const DataType mem_datatype = create_and_check_datatype<typename TransformWrite<T>::dataspace_type>();
-    auto converter = make_transform_write(buffer);
 
     if (H5Awrite(getId(), mem_datatype.getId(),
                  static_cast<const void*>(converter.get_pointer())) < 0) {

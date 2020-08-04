@@ -36,7 +36,7 @@ namespace HighFive {
 namespace details {
 template <typename T>
 struct h5_pod :
-    std::is_trivial<T> {};
+    std::is_pod<T> {};
 
 template <>
 struct h5_pod<bool> :
@@ -90,7 +90,8 @@ struct data_converter {
     using dataspace_type = T;
 
     inline data_converter(const std::vector<size_t>& dims)
-      : _number_of_element(get_number_of_elements(dims))
+      : _dims(dims)
+      , _number_of_element(get_number_of_elements(dims))
     {
         if (dims.size() > 1 || _number_of_element > 1) {
             throw std::string("Invalid number of elements");
@@ -103,6 +104,10 @@ struct data_converter {
 
     static std::vector<size_t> get_size(const value_type& val) {
         return std::vector<size_t>{1};
+    }
+
+    std::vector<size_t> get_dims() {
+        return _dims;
     }
 
     dataspace_type* get_pointer(value_type& val) {
@@ -121,6 +126,7 @@ struct data_converter {
         *data = scalar;
     }
 
+    std::vector<size_t> _dims;
     size_t _number_of_element;
 };
 
@@ -145,6 +151,10 @@ struct data_converter<std::string> {
 
     static std::vector<size_t> get_size(const value_type& val) {
         return std::vector<size_t>{val.size()};
+    }
+
+    std::vector<size_t> get_dims() {
+        return _dims;
     }
 
     dataspace_type* get_pointer(value_type& val) {
@@ -193,6 +203,10 @@ struct data_converter<std::vector<T>> {
         return ret;
     }
 
+    std::vector<size_t> get_dims() {
+        return _dims;
+    }
+
     dataspace_type* get_pointer(value_type& val) {
         return val.data();
     }
@@ -218,54 +232,6 @@ struct data_converter<std::vector<T>> {
     size_t _number_of_element;
     inner_type _inner_converter;
 
-};
-
-template <typename T, size_t N>
-struct data_converter<T[N]> {
-    using value_type = T[N];
-    using inner_type = data_converter<T>;
-    using dataspace_type = typename data_converter<T>::dataspace_type;
-
-    inline data_converter(const std::vector<size_t>& dims)
-      : _dims(dims)
-      , _number_of_element(get_number_of_elements(dims))
-      , _inner_converter(std::vector<size_t>(dims.begin() + 1, dims.end()))
-    { };
-
-    void allocate(value_type& val) {
-        // pass
-    }
-
-    static std::vector<size_t> get_size(const value_type& val) {
-        auto ret = inner_type::get_size(val[0]);
-        ret.insert(ret.begin(), N);
-        return ret;
-    }
-
-    dataspace_type* get_pointer(value_type& val) {
-        return val;
-    }
-
-    const dataspace_type* get_pointer(const value_type& val) const {
-        return val;
-    }
-
-    // Internal function that take data and put it in vec
-    inline void process_result(value_type& vec, const dataspace_type* data) {
-        for (unsigned int i = 0; i < _dims[0]; ++i) {
-            _inner_converter.process_result(vec[i], data + _inner_converter._number_of_element * i); 
-        }
-    }
-
-    inline void preprocess_result(const value_type& scalar, dataspace_type* data) {
-         for (size_t i = 0; i < scalar.size(); ++i) {
-             _inner_converter.preprocess_result(scalar[i], data + _inner_converter._number_of_element * i);
-         }
-    }
-
-    std::vector<size_t> _dims;
-    size_t _number_of_element;
-    inner_type _inner_converter;
 };
 
 template <typename T, size_t N>
@@ -290,6 +256,10 @@ struct data_converter<std::array<T, N>> {
         auto ret = inner_type::get_size(val[0]);
         ret.insert(ret.begin(), N);
         return ret;
+    }
+
+    std::vector<size_t> get_dims() {
+        return _dims;
     }
 
     dataspace_type* get_pointer(value_type& val) {
@@ -353,6 +323,10 @@ struct data_converter<boost::multi_array<T, Dims>> {
         return ret;
     }
 
+    std::vector<size_t> get_dims() {
+        return _dims;
+    }
+
     dataspace_type* get_pointer(value_type& val) {
         return val.data();
     }
@@ -409,6 +383,10 @@ struct data_converter<boost::numeric::ublas::matrix<T>> {
         return ret;
     }
 
+    std::vector<size_t> get_dims() {
+        return _dims;
+    }
+
     dataspace_type* get_pointer(value_type& val) {
         return &val(0, 0);
     }
@@ -454,6 +432,10 @@ class TransformRead<T, typename std::enable_if<details::h5_non_continuous<T>::va
 #endif
     }
 
+    std::vector<size_t> get_dims() const {
+        return _dims;
+    }
+
     dataspace_type* get_pointer() {
         _vec.resize(details::get_number_of_elements(_dims));
         return _vec.data();
@@ -489,6 +471,10 @@ class TransformRead<T, typename std::enable_if<details::h5_continuous<T>::value>
         : _dims(dims)
         , _converter(_dims)
     {
+    }
+
+    std::vector<size_t> get_dims() const {
+        return _dims;
     }
 
     dataspace_type* get_pointer() {
@@ -527,6 +513,10 @@ class TransformWrite<T, typename std::enable_if<details::h5_non_continuous<T>::v
         _converter.preprocess_result(value, _vec.data());
     }
 
+    std::vector<size_t> get_dims() const {
+        return _dims;
+    }
+
     const dataspace_type* get_pointer() const {
         return _vec.data();
     }
@@ -550,6 +540,10 @@ class TransformWrite<T, typename std::enable_if<details::h5_continuous<T>::value
         , _data(value)
     {}
 
+    std::vector<size_t> get_dims() const {
+        return _dims;
+    }
+
     const dataspace_type* get_pointer() {
         return _converter.get_pointer(_data);
     }
@@ -568,6 +562,11 @@ TransformWrite<T> make_transform_write(const T& value) {
 template <typename T>
 TransformRead<T> make_transform_read(const std::vector<size_t>& dims) {
     return TransformRead<T>{dims};
+}
+
+template <typename T>
+std::vector<size_t> compute_dims(const T& value) {
+    return details::data_converter<T>::get_size(value);
 }
 
 }  // namespace HighFive
