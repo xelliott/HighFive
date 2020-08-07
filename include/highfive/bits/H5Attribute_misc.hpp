@@ -27,6 +27,12 @@
 
 namespace HighFive {
 
+inline std::string Attribute::getName() const {
+    return details::get_name([&](char *buffer, hsize_t length) {
+        return H5Aget_name(_hid, length, buffer);
+    });
+}
+
 inline size_t Attribute::getStorageSize() const {
     return static_cast<size_t>(H5Aget_storage_size(_hid));
 }
@@ -81,6 +87,22 @@ inline T Attribute::read() const {
 }
 
 template <typename T>
+inline void Attribute::read(T* array) const {
+    static_assert(!std::is_const<T>::value,
+                  "read() requires a non-const structure to read data into");
+    using element_type = typename details::data_converter<T>::dataspace_type;
+    DataSpace mem_space = getMemSpace();
+
+    const DataType mem_datatype = create_and_check_datatype<element_type>();
+
+    if (H5Aread(getId(), mem_datatype.getId(),
+                static_cast<void*>(array)) < 0) {
+        HDF5ErrMapper::ToException<AttributeException>(
+            "Error during HDF5 Read: ");
+    }
+}
+
+template <typename T>
 inline void Attribute::write(const T& buffer) {
     auto converter = make_transform_write(buffer);
     const size_t dim_buffer = converter.get_dims().size();
@@ -99,6 +121,21 @@ inline void Attribute::write(const T& buffer) {
 
     if (H5Awrite(getId(), mem_datatype.getId(),
                  static_cast<const void*>(converter.get_pointer())) < 0) {
+        HDF5ErrMapper::ToException<DataSetException>(
+            "Error during HDF5 Write: ");
+    }
+}
+
+template <typename T>
+inline void Attribute::write_raw(const T& buffer) {
+    using element_type = typename details::data_converter<T>::dataspace_type;
+    DataSpace space = getSpace();
+    DataSpace mem_space = getMemSpace();
+    const DataType mem_datatype = create_and_check_datatype<element_type>();
+    details::data_converter<T> converter(mem_space);
+
+    if (H5Awrite(getId(), mem_datatype.getId(),
+                 static_cast<const void*>(converter.transform_write(buffer))) < 0) {
         HDF5ErrMapper::ToException<DataSetException>(
             "Error during HDF5 Write: ");
     }

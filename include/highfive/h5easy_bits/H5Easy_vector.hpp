@@ -25,29 +25,44 @@ struct is_vector<std::vector<T>> : std::true_type {};
 template <typename T>
 struct io_impl<T, typename std::enable_if<is_vector<T>::value>::type> {
 
-    static DataSet dump(File& file, const std::string& path, const T& data) {
-        using type_name = typename HighFive::details::data_converter<T>::dataspace_type;
-        detail::createGroupsToDataSet(file, path);
-        DataSet dataset = file.createDataSet<type_name>(path, DataSpace::From(data));
+    inline static DataSet dump(File& file,
+                               const std::string& path,
+                               const T& data,
+                               const DumpOptions& options) {
+        using value_type = typename HighFive::details::data_converter<T>::dataspace_type;
+        DataSet dataset = initDataset<value_type>(file, path, HighFive::compute_dims(data), options);
         dataset.write(data);
-        file.flush();
-        return dataset;
-    }
-
-    static DataSet overwrite(File& file, const std::string& path, const T& data) {
-        DataSet dataset = file.getDataSet(path);
-        if (HighFive::compute_dims(data) != dataset.getDimensions()) {
-            throw detail::error(file, path, "H5Easy::dump: Inconsistent dimensions");
+        if (options.flush()) {
+            file.flush();
         }
-        dataset.write(data);
-        file.flush();
         return dataset;
     }
 
-    static T load(const File& file, const std::string& path) {
+    inline static T load(const File& file, const std::string& path) {
+        return file.getDataSet(path).read<T>();
+    }
+
+   inline static Attribute dumpAttribute(File& file,
+                                         const std::string& path,
+                                         const std::string& key,
+                                         const T& data,
+                                         const DumpOptions& options) {
+        using value_type = typename HighFive::details::data_converter<T>::dataspace_type;
+        std::vector<size_t> shape = get_dim_vector(data);
+        Attribute attribute = initAttribute<value_type>(file, path, key, shape, options);
+        attribute.write(data);
+        if (options.flush()) {
+            file.flush();
+        }
+        return attribute;
+    }
+
+    inline static T loadAttribute(const File& file,
+                                  const std::string& path,
+                                  const std::string& key) {
         DataSet dataset = file.getDataSet(path);
-        T data = dataset.read<T>();
-        return data;
+        Attribute attribute = dataset.getAttribute(key);
+        return attribute.read<T>();
     }
 };
 
