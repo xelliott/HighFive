@@ -168,37 +168,48 @@ inline T SliceTraits<Derivate>::read() const {
         throw DataSpaceException(ss.str());
     }
 
-    const DataType& mem_datatype = create_and_check_datatype<typename TransformRead<T>::dataspace_type>();
-
-    if (H5Dread(details::get_dataset(slice).getId(),
-                mem_datatype.getId(),
-                details::get_memspace_id(slice),
-                slice.getSpace().getId(), H5P_DEFAULT, static_cast<void*>(converter.get_pointer())) < 0) {
-        HDF5ErrMapper::ToException<DataSetException>("Error during HDF5 Read: ");
-    }
+    read(converter.get_pointer());
 
     return converter.transform_read();
 }
 
 template <typename Derivate>
 template <typename T>
-inline void SliceTraits<Derivate>::write(const T& buffer) {
+inline void SliceTraits<Derivate>::read(T* array, const DataType& dtype) const {
     const auto& slice = static_cast<const Derivate&>(*this);
-    const DataSpace& mem_space = slice.getMemSpace();
+    const DataType& mem_datatype = dtype.empty() ? create_and_check_datatype<T>() : dtype;
 
+    if (H5Dread(details::get_dataset(slice).getId(),
+                mem_datatype.getId(),
+                details::get_memspace_id(slice),
+                slice.getSpace().getId(), H5P_DEFAULT, array) < 0) {
+        HDF5ErrMapper::ToException<DataSetException>("Error during HDF5 Read: ");
+    }
+}
+
+template <typename Derivate>
+template <typename T>
+inline void SliceTraits<Derivate>::write(const T& buffer) const {
     auto converter = make_transform_write(buffer);
+    // FIXME check size
+    write_raw(converter.get_pointer());
+}
 
-    const auto& mem_datatype = create_and_check_datatype<typename TransformWrite<T>::dataspace_type>();
+template <typename Derivate>
+template <typename T>
+inline void SliceTraits<Derivate>::write_raw(const T* buffer, const DataType& dtype) const {
+    const auto& slice = static_cast<const Derivate&>(*this);
+
+    const auto& mem_datatype = dtype.empty() ? create_and_check_datatype<T>() : dtype;
 
     if (H5Dwrite(details::get_dataset(slice).getId(),
                  mem_datatype.getId(),
                  details::get_memspace_id(slice),
                  slice.getSpace().getId(), H5P_DEFAULT,
-                 static_cast<const void*>(converter.get_pointer())) < 0) {
+                 buffer) < 0) {
         HDF5ErrMapper::ToException<DataSetException>("Error during HDF5 Write: ");
     }
 }
-
 
 }  // namespace HighFive
 

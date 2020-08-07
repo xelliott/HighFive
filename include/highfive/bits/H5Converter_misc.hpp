@@ -43,9 +43,9 @@ struct h5_pod<bool> :
     std::false_type {};
 
 // contiguous pair of T
-template <typename T>
-struct h5_pod<std::complex<T>> :
-    std::true_type {};
+// template <typename T>
+// struct h5_pod<std::complex<T>> :
+//     std::true_type {};
 
 template <typename T>
 struct h5_continuous :
@@ -86,7 +86,6 @@ size_t get_number_of_elements(const std::vector<size_t>& dims) {
 template <typename T>
 struct data_converter {
     using value_type = T;
-    using inner_type = T;
     using dataspace_type = T;
 
     inline data_converter(const std::vector<size_t>& dims)
@@ -106,8 +105,46 @@ struct data_converter {
         return std::vector<size_t>{1};
     }
 
-    std::vector<size_t> get_dims() {
-        return _dims;
+    dataspace_type* get_pointer(value_type& val) {
+        return &val;
+    }
+
+    const dataspace_type* get_pointer(const value_type& val) const {
+        return &val;
+    }
+
+    inline void process_result(value_type& scalar, const dataspace_type* data) {
+        scalar = *data;
+    }
+
+    inline void preprocess_result(const value_type& scalar, dataspace_type* data) {
+        *data = scalar;
+    }
+
+    std::vector<size_t> _dims;
+    size_t _number_of_element;
+};
+
+template <typename T>
+struct data_converter<std::complex<T>> {
+    using value_type = std::complex<T>;
+    using dataspace_type = std::complex<T>;
+
+    inline data_converter(const std::vector<size_t>& dims)
+      : _dims(dims)
+      , _number_of_element(get_number_of_elements(dims))
+    {
+        if (dims.size() > 1 || _number_of_element > 1) {
+            throw std::string("Invalid number of elements");
+        }
+    }
+
+    void allocate(value_type&) {
+        // pass
+    }
+
+    static std::vector<size_t> get_size(const value_type& val) {
+        return std::vector<size_t>{1};
     }
 
     dataspace_type* get_pointer(value_type& val) {
@@ -151,10 +188,6 @@ struct data_converter<std::string> {
 
     static std::vector<size_t> get_size(const value_type& val) {
         return std::vector<size_t>{val.size()};
-    }
-
-    std::vector<size_t> get_dims() {
-        return _dims;
     }
 
     dataspace_type* get_pointer(value_type& val) {
@@ -203,10 +236,6 @@ struct data_converter<std::vector<T>> {
         return ret;
     }
 
-    std::vector<size_t> get_dims() {
-        return _dims;
-    }
-
     dataspace_type* get_pointer(value_type& val) {
         return val.data();
     }
@@ -244,7 +273,11 @@ struct data_converter<std::array<T, N>> {
       : _dims(dims)
       , _number_of_element(get_number_of_elements(dims))
       , _inner_converter(std::vector<size_t>(dims.begin() + 1, dims.end()))
-    { };
+    {
+        if (_dims[0] != N) {
+            throw std::runtime_error("Size of the std::array is not valid");
+        }
+    };
 
     void allocate(value_type& val) {
         for(auto& v: val) {
@@ -256,10 +289,6 @@ struct data_converter<std::array<T, N>> {
         auto ret = inner_type::get_size(val[0]);
         ret.insert(ret.begin(), N);
         return ret;
-    }
-
-    std::vector<size_t> get_dims() {
-        return _dims;
     }
 
     dataspace_type* get_pointer(value_type& val) {
@@ -278,7 +307,7 @@ struct data_converter<std::array<T, N>> {
     }
 
     inline void preprocess_result(const value_type& scalar, dataspace_type* data) {
-         for (int i = 0; i < scalar.size(); ++i) {
+         for (size_t i = 0; i < scalar.size(); ++i) {
              _inner_converter.preprocess_result(scalar[i], data + _inner_converter._number_of_element * i);
          }
     }
@@ -323,10 +352,6 @@ struct data_converter<boost::multi_array<T, Dims>> {
         return ret;
     }
 
-    std::vector<size_t> get_dims() {
-        return _dims;
-    }
-
     dataspace_type* get_pointer(value_type& val) {
         return val.data();
     }
@@ -342,7 +367,7 @@ struct data_converter<boost::multi_array<T, Dims>> {
     }
 
     inline void preprocess_result(const value_type& scalar, dataspace_type* data) {
-         for (int i = 0; i < scalar.num_elements(); ++i) {
+         for (size_t i = 0; i < scalar.num_elements(); ++i) {
              _inner_converter.preprocess_result(scalar.data()[i], data + _inner_converter._number_of_element * i);
          }
     }
@@ -383,10 +408,6 @@ struct data_converter<boost::numeric::ublas::matrix<T>> {
         return ret;
     }
 
-    std::vector<size_t> get_dims() {
-        return _dims;
-    }
-
     dataspace_type* get_pointer(value_type& val) {
         return &val(0, 0);
     }
@@ -402,7 +423,7 @@ struct data_converter<boost::numeric::ublas::matrix<T>> {
     }
 
     inline void preprocess_result(const value_type& scalar, dataspace_type* data) {
-         for (int i = 0; i < scalar.size1() * scalar.size2(); ++i) {
+         for (size_t i = 0; i < scalar.size1() * scalar.size2(); ++i) {
              _inner_converter.preprocess_result(scalar.data()[i], data + _inner_converter._number_of_element * i);
          }
     }
@@ -554,6 +575,7 @@ class TransformWrite<T, typename std::enable_if<details::h5_continuous<T>::value
     const T& _data;
 };
 
+// Wrappers to have template deduction, that are not available with class before C++17
 template <typename T>
 TransformWrite<T> make_transform_write(const T& value) {
     return TransformWrite<T>{value};

@@ -52,7 +52,7 @@ AnnotateTraits<Derivate>::createAttribute(const std::string& attribute_name,
     Attribute att = createAttribute(
         attribute_name, 
         DataSpace::From(data),
-        create_and_check_datatype<conv.dataspace_type>());
+        create_and_check_datatype<typename TransformWrite<T>::dataspace_type>());
     att.write(data);
     return att;
 }

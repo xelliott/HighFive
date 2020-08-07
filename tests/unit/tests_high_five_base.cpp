@@ -275,7 +275,7 @@ BOOST_AUTO_TEST_CASE(HighFiveExtensibleDataSet) {
 
         DataSet dataset_absolute = file.getDataSet("/" + DATASET_NAME);
         const auto dims = dataset_absolute.getSpace().getDimensions();
-        auto values = dataset_absolute.read<double[4][6]>();
+        auto values = dataset_absolute.read<std::vector<std::vector<double>>>();
         BOOST_CHECK_EQUAL(4, dims[0]);
         BOOST_CHECK_EQUAL(6, dims[1]);
 
@@ -331,7 +331,8 @@ BOOST_AUTO_TEST_CASE(HighFiveRefCountMove) {
         DataSet d2(std::move(*d1_ptr));
         d1_ptr.reset();
 
-        auto values = d2.read<double[10][10]>();
+        double values[10][10];
+        d2.read(values);
 
         for (std::size_t i = 0; i < 10; ++i) {
             for (std::size_t j = 0; j < 10; ++j) {
@@ -621,9 +622,10 @@ BOOST_AUTO_TEST_CASE(HighFiveReadWriteShortcut) {
     // Plain c arrays. 1D
     {
         int int_c_array[] = {0, 1, 2, 3, 4, 5, 6, 7, 8, 9};
-        DataSet ds_int2 = file.createDataSet("/TmpCArrayInt", int_c_array);
+        int int_c_array_out[10];
+        DataSet ds_int2 = file.createDataSet("/TmpCArrayInt", int_c_array_out);
 
-        auto int_c_array_out = ds_int2.read<decltype(int_c_array)>();
+        ds_int2.read(int_c_array);
         for (size_t i = 0; i < 10; ++i) {
             BOOST_CHECK_EQUAL(int_c_array[i], int_c_array_out[i]);
         }
@@ -634,7 +636,8 @@ BOOST_AUTO_TEST_CASE(HighFiveReadWriteShortcut) {
         char char_c_2darray[][3] = {"aa", "bb", "cc", "12"};
         DataSet ds_char2 = file.createDataSet("/TmpCArray2dchar", char_c_2darray);
 
-        auto char_c_2darray_out = ds_char2.read<decltype(char[2][3])();
+        char char_c_2darray_out[2][3];
+        ds_char2.read(char_c_2darray_out);
         for (size_t i = 0; i < 4; ++i) {
             for (size_t j = 0; j < 3; ++j) {
                 BOOST_CHECK_EQUAL(char_c_2darray[i][j], char_c_2darray_out[i][j]);
@@ -700,8 +703,6 @@ void readWriteAttributeVectorTest() {
     }
 
     {
-        typename std::vector<T> result1, result2;
-
         Attribute a1_read = file.getGroup("dummy_group").getAttribute("my_attribute");
         auto result1 = a1_read.read<std::vector<T>>();
 
@@ -793,7 +794,6 @@ void selectionArraySimpleTest() {
     // select slice
     {
         // read it back
-        Vector result;
         std::vector<size_t> offset{offset_x};
         std::vector<size_t> size{count_x};
 
@@ -856,13 +856,15 @@ BOOST_AUTO_TEST_CASE(selectionByElementMultiDim) {
     }
 
     {
-        int value[2] = set.select(ElementSet{0, 0, 2, 2}).read<int[2]>();
+        int value[2];
+        set.select(ElementSet{0, 0, 2, 2}).read(value);
         BOOST_CHECK_EQUAL(value[0], 1);
         BOOST_CHECK_EQUAL(value[1], 9);
     }
 
     {
-        int value[2] = set.select(ElementSet{{0, 1}, {1, 2}}).read<int[2]>();
+        int value[2];
+        set.select(ElementSet{{0, 1}, {1, 2}}).read(value);
         BOOST_CHECK_EQUAL(value[0], 2);
         BOOST_CHECK_EQUAL(value[1], 6);
     }
@@ -898,14 +900,15 @@ void columnSelectionTest() {
     // Create a dataset with arbitrary type
     DataSet dataset = file.createDataSet<T>(DATASET_NAME, dataspace);
 
-    dataset.write(values);
+    dataset.write_raw(&values[0][0]);
 
     file.flush();
 
     std::vector<size_t> columns{1, 3, 5};
 
     Selection slice = dataset.select(columns);
-    T result[x_size][3] = slice.read<T[x_size][3]();
+    T result[x_size][3];
+    slice.read(&result[0][0]);
 
     BOOST_CHECK_EQUAL(slice.getSpace().getDimensions()[0], x_size);
     BOOST_CHECK_EQUAL(slice.getMemSpace().getDimensions()[0], x_size);
@@ -951,7 +954,7 @@ void attribute_scalar_rw() {
     // read back a scalar attribute
     {
         Attribute att = g.getAttribute("family");
-        T rest = att.read();
+        T res = att.read<T>();
         BOOST_CHECK_EQUAL(res, attribute_value);
     }
 }
@@ -1029,7 +1032,7 @@ void readWriteShuffleDeflateTest() {
         ContentGenerate<T> generator;
         generate2D(array, x_size, y_size, generator);
 
-        dataset.write(array);
+        dataset.write_raw(&array[0][0]);
 
         file.flush();
     }
@@ -1039,7 +1042,8 @@ void readWriteShuffleDeflateTest() {
         File file_read(filename.str(), File::ReadOnly);
         DataSet dataset_read = file_read.getDataSet("/" + DATASET_NAME);
 
-        auto result = dataset_read.read<T[x_size][y_size]();
+        T result[x_size][y_size];
+        dataset_read.read(&result[0][0]);
 
         for (size_t i = 0; i < x_size; ++i) {
             for (size_t j = 0; i < y_size; ++i) {
@@ -1084,7 +1088,7 @@ BOOST_AUTO_TEST_CASE(ReadInBroadcastDims) {
     DataSet out_a = file.getDataSet(DATASET_NAME + "_a");
     DataSet out_b = file.getDataSet(DATASET_NAME + "_b");
 
-    autp data_a = out_a.read<std::vector<double>>();
+    auto data_a = out_a.read<std::vector<double>>();
     auto data_b = out_b.read<std::vector<double>>();
 
     BOOST_CHECK_EQUAL_COLLECTIONS(data_a.begin(), data_a.end(), some_data.begin(),
@@ -1232,7 +1236,7 @@ BOOST_AUTO_TEST_CASE(HighFiveCompounds) {
 
         file.flush();
 
-        std::vector<CSL1> result = dataset.select({0}, {2}).read<std::vector<CSL1>();
+        std::vector<CSL1> result = dataset.select({0}, {2}).read<std::vector<CSL1>>();
 
         BOOST_CHECK_EQUAL(result.size(), 2);
         BOOST_CHECK_EQUAL(result[0].m1, 1);
@@ -1250,7 +1254,7 @@ BOOST_AUTO_TEST_CASE(HighFiveCompounds) {
         dataset.write(csl);
 
         file.flush();
-        std::vector<CSL2> result = dataset.select({0}, {2}).read<std::vector<CSL2>();
+        std::vector<CSL2> result = dataset.select({0}, {2}).read<std::vector<CSL2>>();
 
         BOOST_CHECK_EQUAL(result.size(), 2);
         BOOST_CHECK_EQUAL(result[0].csl1.m1, 1);

@@ -55,7 +55,7 @@ inline T Attribute::read() const {
     DataSpace mem_space = getMemSpace();
     auto converter = make_transform_read<T>(mem_space.getDimensions());
     using element_type = typename details::data_converter<T>::dataspace_type;
-    const size_t dim_array = converter.get_size().size();
+    const size_t dim_array = converter.get_dims().size();
     DataSpace space = getSpace();
 
     if (!details::checkDimensions(mem_space, dim_array)) {

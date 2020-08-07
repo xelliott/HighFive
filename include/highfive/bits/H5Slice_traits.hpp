@@ -89,6 +89,9 @@ class SliceTraits {
     template <typename T>
     T read() const;
 
+    template <typename T>
+    void read(T* array, const DataType& dtype = DataType()) const;
+
     ///
     /// Write the integrality N-dimension buffer to this dataset
     /// An exception is raised is if the numbers of dimension of the buffer and
@@ -97,7 +100,10 @@ class SliceTraits {
     /// The array type can be a N-pointer or a N-vector ( e.g int** integer two
     /// dimensional array )
     template <typename T>
-    void write(const T& buffer);
+    void write(const T& buffer) const;
+
+    template <typename T>
+    void write_raw(const T* buffer, const DataType& dtype = DataType()) const;
 };
 
 }  // namespace HighFive
