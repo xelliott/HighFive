@@ -56,31 +56,11 @@ inline DataSpace Attribute::getMemSpace() const { return getSpace(); }
 
 template <typename T>
 inline T Attribute::read() const {
-    static_assert(!std::is_const<typename std::remove_reference<T>::type>::value,
-                  "read() requires a non-const array to read into");
+    // Apply pre read conversions
     DataSpace mem_space = getMemSpace();
     auto converter = make_transform_read<T>(mem_space.getDimensions());
-    using element_type = typename details::data_converter<T>::dataspace_type;
-    const size_t dim_array = converter.get_dims().size();
-    DataSpace space = getSpace();
 
-    if (!details::checkDimensions(mem_space, dim_array)) {
-        std::ostringstream ss;
-        ss << "Impossible to read attribute of dimensions "
-           << mem_space.getNumberDimensions() << " into arrays of dimensions "
-           << dim_array;
-        throw DataSpaceException(ss.str());
-    }
-
-    const DataType mem_datatype = create_and_check_datatype<element_type>();
-
-    // Apply pre read conversions
-
-    if (H5Aread(getId(), mem_datatype.getId(),
-                static_cast<void*>(converter.get_pointer())) < 0) {
-        HDF5ErrMapper::ToException<AttributeException>(
-            "Error during HDF5 Read: ");
-    }
+    read(converter.get_pointer());
 
     // re-arrange results
     return converter.transform_read();
@@ -90,10 +70,7 @@ template <typename T>
 inline void Attribute::read(T* array) const {
     static_assert(!std::is_const<T>::value,
                   "read() requires a non-const structure to read data into");
-    using element_type = typename details::data_converter<T>::dataspace_type;
-    DataSpace mem_space = getMemSpace();
-
-    const DataType mem_datatype = create_and_check_datatype<element_type>();
+    const DataType mem_datatype = create_and_check_datatype<T>();
 
     if (H5Aread(getId(), mem_datatype.getId(),
                 static_cast<void*>(array)) < 0) {

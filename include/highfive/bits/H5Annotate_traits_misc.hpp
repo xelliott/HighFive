@@ -48,7 +48,6 @@ template <typename T>
 inline Attribute
 AnnotateTraits<Derivate>::createAttribute(const std::string& attribute_name,
                                           const T& data) {
-    auto conv = make_transform_write(data);
     Attribute att = createAttribute(
         attribute_name, 
         DataSpace::From(data),

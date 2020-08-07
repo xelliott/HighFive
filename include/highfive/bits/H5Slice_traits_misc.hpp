@@ -160,14 +160,6 @@ inline T SliceTraits<Derivate>::read() const {
     const DataSpace& mem_space = slice.getMemSpace();
     auto converter = make_transform_read<T>(mem_space.getDimensions());
 
-    if (!details::checkDimensions(mem_space, converter.get_dims().size())) {
-        std::ostringstream ss;
-        ss << "Impossible to read DataSet of dimensions "
-           << mem_space.getNumberDimensions() << " into arrays of dimensions "
-           << converter.get_dims().size();
-        throw DataSpaceException(ss.str());
-    }
-
     read(converter.get_pointer());
 
     return converter.transform_read();
@@ -189,7 +181,7 @@ inline void SliceTraits<Derivate>::read(T* array, const DataType& dtype) const {
 
 template <typename Derivate>
 template <typename T>
-inline void SliceTraits<Derivate>::write(const T& buffer) const {
+inline void SliceTraits<Derivate>::write(const T& buffer) {
     auto converter = make_transform_write(buffer);
     // FIXME check size
     write_raw(converter.get_pointer());
@@ -197,7 +189,7 @@ inline void SliceTraits<Derivate>::write(const T& buffer) const {
 
 template <typename Derivate>
 template <typename T>
-inline void SliceTraits<Derivate>::write_raw(const T* buffer, const DataType& dtype) const {
+inline void SliceTraits<Derivate>::write_raw(const T* buffer, const DataType& dtype) {
     const auto& slice = static_cast<const Derivate&>(*this);
 
     const auto& mem_datatype = dtype.empty() ? create_and_check_datatype<T>() : dtype;

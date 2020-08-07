@@ -102,7 +102,7 @@ struct data_converter {
     }
 
     static std::vector<size_t> get_size(const value_type& val) {
-        return std::vector<size_t>{1};
+        return std::vector<size_t>{0};
     }
 
     dataspace_type* get_pointer(value_type& val) {
