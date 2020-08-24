@@ -47,12 +47,12 @@ void readWrite2DArrayTest() {
     // Create a dataset with arbitrary type
     DataSet dataset = file.createDataSet<T>(DATASET_NAME, dataspace);
 
-    std::vector<std::vector<T>> array;
+    T array[x_size][y_size];
 
     ContentGenerate<T> generator;
-    generate2D(&array[0], x_size, y_size, generator);
+    generate2D(array, x_size, y_size, generator);
 
-    dataset.write(array);
+    dataset.write_raw(array);
 
     auto result = dataset.read<std::vector<std::vector<T>>>();
 

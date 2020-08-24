@@ -58,19 +58,19 @@ template <typename T>
 inline T Attribute::read() const {
     // Apply pre read conversions
     DataSpace mem_space = getMemSpace();
-    auto converter = make_transform_read<T>(mem_space.getDimensions());
+    auto converter = make_transform_read<T>(mem_space);
 
-    read(converter.get_pointer());
+    read(converter.get_pointer(), converter._h5_type);
 
     // re-arrange results
     return converter.transform_read();
 }
 
 template <typename T>
-inline void Attribute::read(T* array) const {
+inline void Attribute::read(T* array, const DataType& dtype) const {
     static_assert(!std::is_const<T>::value,
                   "read() requires a non-const structure to read data into");
-    const DataType mem_datatype = create_and_check_datatype<T>();
+    const auto& mem_datatype = dtype.empty() ? create_and_check_datatype<T>() : dtype;
 
     if (H5Aread(getId(), mem_datatype.getId(),
                 static_cast<void*>(array)) < 0) {
@@ -81,22 +81,19 @@ inline void Attribute::read(T* array) const {
 
 template <typename T>
 inline void Attribute::write(const T& buffer) {
-    auto converter = make_transform_write(buffer);
-    const size_t dim_buffer = converter.get_dims().size();
     DataSpace space = getSpace();
     DataSpace mem_space = getMemSpace();
+    auto converter = make_transform_write(mem_space, buffer);
 
-    if (!details::checkDimensions(mem_space, dim_buffer)) {
+    if (!details::checkDimensions(mem_space, converter.number_of_dims)) {
         std::ostringstream ss;
-        ss << "Impossible to write buffer of dimensions " << dim_buffer
+        ss << "Impossible to write buffer of dimensions " << converter.number_of_dims
            << " into attribute of dimensions "
            << mem_space.getNumberDimensions();
         throw DataSpaceException(ss.str());
     }
 
-    const DataType mem_datatype = create_and_check_datatype<typename TransformWrite<T>::dataspace_type>();
-
-    if (H5Awrite(getId(), mem_datatype.getId(),
+    if (H5Awrite(getId(), converter._h5_type.getId(),
                  static_cast<const void*>(converter.get_pointer())) < 0) {
         HDF5ErrMapper::ToException<DataSetException>(
             "Error during HDF5 Write: ");

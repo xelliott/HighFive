@@ -158,9 +158,9 @@ template <typename T>
 inline T SliceTraits<Derivate>::read() const {
     const auto& slice = static_cast<const Derivate&>(*this);
     const DataSpace& mem_space = slice.getMemSpace();
-    auto converter = make_transform_read<T>(mem_space.getDimensions());
+    auto converter = make_transform_read<T>(mem_space);
 
-    read(converter.get_pointer());
+    read(converter.get_pointer(), converter._h5_type);
 
     return converter.transform_read();
 }
@@ -182,9 +182,11 @@ inline void SliceTraits<Derivate>::read(T* array, const DataType& dtype) const {
 template <typename Derivate>
 template <typename T>
 inline void SliceTraits<Derivate>::write(const T& buffer) {
-    auto converter = make_transform_write(buffer);
+    const auto& slice = static_cast<const Derivate&>(*this);
+    const DataSpace& mem_space = slice.getMemSpace();
+    auto converter = make_transform_write(mem_space, buffer);
     // FIXME check size
-    write_raw(converter.get_pointer());
+    write_raw(converter.get_pointer(), converter._h5_type);
 }
 
 template <typename Derivate>

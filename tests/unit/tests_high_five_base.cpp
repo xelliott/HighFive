@@ -251,7 +251,7 @@ BOOST_AUTO_TEST_CASE(HighFiveExtensibleDataSet) {
                                              AtomicType<double>(), props);
 
         // Write into the initial part of the dataset
-        dataset.select({0, 0}, {3, 1}).write(t1);
+        dataset.select({0, 0}, {3, 1}).write_raw(&t1[0][0]);
 
         // Resize the dataset to a larger size
         dataset.resize({4, 6});
@@ -260,7 +260,7 @@ BOOST_AUTO_TEST_CASE(HighFiveExtensibleDataSet) {
         BOOST_CHECK_EQUAL(6, dataset.getSpace().getDimensions()[1]);
 
         // Write into the new part of the dataset
-        dataset.select({3, 3}, {1, 3}).write(t2);
+        dataset.select({3, 3}, {1, 3}).write_raw(&t2[0][0]);
 
         SilenceHDF5 silencer;
         // Try resize out of bounds
@@ -318,7 +318,7 @@ BOOST_AUTO_TEST_CASE(HighFiveRefCountMove) {
 
         double values[10][10] = {{0}};
         values[5][0] = 1;
-        d1.write(values);
+        d1.write_raw(&values[0][0]);
 
         // force move
         d1_ptr.reset(new DataSet(std::move(d1)));
@@ -332,7 +332,7 @@ BOOST_AUTO_TEST_CASE(HighFiveRefCountMove) {
         d1_ptr.reset();
 
         double values[10][10];
-        d2.read(values);
+        d2.read(&values[0][0]);
 
         for (std::size_t i = 0; i < 10; ++i) {
             for (std::size_t j = 0; j < 10; ++j) {
@@ -621,26 +621,24 @@ BOOST_AUTO_TEST_CASE(HighFiveReadWriteShortcut) {
 
     // Plain c arrays. 1D
     {
-        int int_c_array[] = {0, 1, 2, 3, 4, 5, 6, 7, 8, 9};
-        int int_c_array_out[10];
-        DataSet ds_int2 = file.createDataSet("/TmpCArrayInt", int_c_array_out);
+        const std::vector<int> int_vector = {0, 1, 2, 3, 4, 5, 6, 7, 8, 9};
+        DataSet ds_int2 = file.createDataSet("/TmpCArrayInt", int_vector);
 
-        ds_int2.read(int_c_array);
+        std::vector<int> int_vector_out = ds_int2.read<std::vector<int>>();
         for (size_t i = 0; i < 10; ++i) {
-            BOOST_CHECK_EQUAL(int_c_array[i], int_c_array_out[i]);
+            BOOST_CHECK_EQUAL(int_vector[i], int_vector_out[i]);
         }
     }
 
     // Plain c arrays. 2D
     {
-        char char_c_2darray[][3] = {"aa", "bb", "cc", "12"};
-        DataSet ds_char2 = file.createDataSet("/TmpCArray2dchar", char_c_2darray);
+        const std::vector<std::vector<double>> char_2d_vector = {{1.2, 3.4}, {5.6, 7.8}};
+        DataSet ds_char2 = file.createDataSet("/TmpCArray2dchar", char_2d_vector);
 
-        char char_c_2darray_out[2][3];
-        ds_char2.read(char_c_2darray_out);
-        for (size_t i = 0; i < 4; ++i) {
-            for (size_t j = 0; j < 3; ++j) {
-                BOOST_CHECK_EQUAL(char_c_2darray[i][j], char_c_2darray_out[i][j]);
+        auto char_c_2darray_out = ds_char2.read<std::vector<std::vector<double>>>();
+        for (size_t i = 0; i < 2; ++i) {
+            for (size_t j = 0; j < 2; ++j) {
+                BOOST_CHECK_EQUAL(char_2d_vector[i][j], char_c_2darray_out[i][j]);
             }
         }
     }
@@ -848,7 +846,7 @@ BOOST_AUTO_TEST_CASE(selectionByElementMultiDim) {
 
     auto set = file.createDataSet("test", DataSpace(dims), AtomicType<int>());
     int values[3][3] = {{1, 2, 3}, {4, 5, 6}, {7, 8, 9}};
-    set.write(values);
+    set.write_raw(&values[0][0]);
 
     {
         int value = set.select(ElementSet{{1, 1}}).read<int>();

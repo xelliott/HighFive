@@ -152,12 +152,12 @@ inline DataSpace DataSpace::From(const ScalarValue& scalar) {
 
 template <typename Value>
 inline DataSpace DataSpace::From(const std::vector<Value>& container) {
-    return DataSpace(compute_dims(container).size());
+    return DataSpace(compute_dims(container));
 }
 
 template <typename ValueT, std::size_t N>
 inline DataSpace DataSpace::From(const ValueT(&container)[N]) {
-    return DataSpace(compute_dims(container).size());
+    return DataSpace(compute_dims(container));
 }
 
 template <std::size_t N, std::size_t Width>
@@ -233,6 +233,8 @@ inline bool checkDimensions(const DataSpace& mem_space, size_t input_dims) {
 
     // From end remove dimensions egal to 1
     const std::vector<size_t>& dims = mem_space.getDimensions();
+    if (dims.empty())
+        return false;
     for (auto i = dims.crbegin(); i != --dims.crend() && *i == 1; ++i)
         --dataset_dims;
 
