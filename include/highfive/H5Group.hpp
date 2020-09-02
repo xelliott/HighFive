@@ -31,7 +31,8 @@ class Group : public Object,
 
     friend class File;
     friend class Reference;
-    template <typename Derivate> friend class ::HighFive::NodeTraits;
+    // template <typename Derivate> friend class ::HighFive::NodeTraits;
+    friend class NodeTraits<Group>;
 };
 
 }  // namespace HighFive
