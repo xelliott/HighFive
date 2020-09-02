@@ -68,12 +68,6 @@ endif()
 # MPI
 if(HIGHFIVE_PARALLEL_HDF5 OR HDF5_IS_PARALLEL)
   find_package(MPI REQUIRED)
-  target_include_directories(libdeps SYSTEM INTERFACE ${MPI_CXX_INCLUDE_PATH})
-  target_link_libraries(libdeps INTERFACE ${MPI_CXX_LIBRARIES})
-  if(CMAKE_VERSION VERSION_LESS 3.13)
-    target_link_libraries(libdeps INTERFACE ${MPI_CXX_LINK_FLAGS})
-  else()
-    target_link_options(libdeps INTERFACE "SHELL:${MPI_CXX_LINK_FLAGS}")
-  endif()
+  target_link_libraries(libdeps INTERFACE MPI::MPI_CXX)
 endif()
 

@@ -14,6 +14,7 @@
 #include "H5DataSpace.hpp"
 #include "H5DataType.hpp"
 #include "H5Object.hpp"
+#include "H5PropertyList.hpp"
 #include "bits/H5_definitions.hpp"
 #include "bits/H5Annotate_traits.hpp"
 #include "bits/H5Slice_traits.hpp"
