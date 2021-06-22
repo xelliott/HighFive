@@ -4,7 +4,6 @@
 # Independent target to make it possible to have new dependencies each build
 add_library(libdeps INTERFACE)
 
-# HDF5
 if(NOT DEFINED HDF5_C_LIBRARIES)
   set(HDF5_NO_FIND_PACKAGE_CONFIG_FILE TRUE)  # Consistency
   set(HDF5_PREFER_PARALLEL ${HIGHFIVE_PARALLEL_HDF5})
@@ -15,9 +14,12 @@ if(HIGHFIVE_PARALLEL_HDF5 AND NOT HDF5_IS_PARALLEL)
   message(WARNING "Parallel HDF5 requested but libhdf5 doesnt support it")
 endif()
 
-target_include_directories(libdeps SYSTEM INTERFACE ${HDF5_INCLUDE_DIRS})
-target_link_libraries(libdeps INTERFACE ${HDF5_C_LIBRARIES})
-target_compile_definitions(libdeps INTERFACE ${HDF5_DEFINITIONS})
+target_link_libraries(libdeps INTERFACE HDF5::HDF5)
+get_target_property(dep_def libdeps INTERFACE_COMPILE_DEFINITIONS)
+if(NOT dep_def)
+  set_target_properties(libdeps PROPERTIES
+    INTERFACE_COMPILE_DEFINITIONS "")
+endif()
 
 # Boost
 if(HIGHFIVE_USE_BOOST)
